@@ -16,6 +16,6 @@ subroutine sub_nest(main_id)
   integer main_id
   !$OMP parallel num_threads(2)
     !$ write(6, *) 'main / sub id = ', &
-    !$              main_id, omp_get_thread_nun()
+    !$              main_id, omp_get_thread_num()
   !$OMP end parallel
 end subroutine sub_nest
