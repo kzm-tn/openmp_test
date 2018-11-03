@@ -1,6 +1,6 @@
 program chk_thread_private
   !$ use omp_lib
-  integer myid
+  integer :: myid
   !$OMP threadprivate(myid)
   !$ call omp_set_dynamic(.false.)
   !$ call omp_set_num_threads(3)
