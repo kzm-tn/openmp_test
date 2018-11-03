@@ -1,2 +1,3 @@
 ./mpi/a.out
 ./openmp/a.out
+*.pdf
