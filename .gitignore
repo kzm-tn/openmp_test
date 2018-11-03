@@ -1,1 +1,2 @@
-./a.out
+./mpi/a.out
+./openmp/a.out
