@@ -1,0 +1,33 @@
+
+
+### THREAD number=       1
+
+
+You have 2097152 elements.
+How many colors do you need ?
+  #COLOR must be more than 2 and
+  #COLOR must not be more than 2097152
+   CM if #COLOR .eq. 0
+  RCM if #COLOR .eq.-1
+CMRCM if #COLOR .le.-2
+=>
+color number:       20
+
+
+### CM-RCM
+
+
+### FINAL COLOR NUMBER      20
+
+
+       104836
+    4.379971E-01 sec. (assemble)
+    1    1.316128E+01
+  101    5.322509E-01
+  201    2.774891E-04
+  301    5.455043E-08
+  318    9.252882E-09
+
+
+N=    2097152
+    2.554452E+01 sec. (solver)
