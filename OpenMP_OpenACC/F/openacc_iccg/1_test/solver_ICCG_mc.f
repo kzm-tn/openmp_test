@@ -48,11 +48,8 @@
       allocate (W(N,4))
 
 !$acc enter data
-!$acc& copyin(B, D, indexL, itemL)
-!$acc& copyin(indexU, itemU, AL, AU)
+!$acc& copyin(B, D, indexL, itemL, indexU, itemU, AL, AU)
 !$acc& create(X, W)
-
-
 
 !$omp parallel do private(i)
 !$acc kernels present(X, W, B)
@@ -75,7 +72,6 @@
 !$acc loop independent
         do i= ip1, ip2
           VAL= D(i)
-          !$acc loop seq
           do k= indexL(i-1)+1, indexL(i)
             VAL= VAL - (AL(k)**2) * W(itemL(k),DD)
           enddo
@@ -85,10 +81,6 @@
       enddo
 !$omp end parallel
 
-!$acc exit data
-!$acc& delete(B, D, indexL, itemL)
-!$acc& delete(indexU, itemU, AL, AU, W)
-!$acc& copyout(X)
 !C===
 
 !C
@@ -99,9 +91,12 @@
 
       BNRM2= 0.0D0
 !$omp parallel do private(i) reduction(+:BNRM2)
+!$acc kernels present(B)
+!$acc loop reduction(+:BNRM2)
       do i = 1, N
         BNRM2 = BNRM2 + B(i)  **2
       enddo
+!$acc end kernels
 !C===
 
 !C
@@ -116,9 +111,12 @@
 !C===      
 
 !$omp parallel do private(i)
+!$acc kernels present(W)
+!$acc loop independent
       do i = 1, N
         W(i,Z)= W(i,R)
       enddo
+!$acc end kernels
 
 
 !$omp parallel private(ic,ip1,ip2,i,WVAL,k)
@@ -126,6 +124,8 @@
         ip1= SMPindex((ic-1)*PEsmpTOT) + 1
         ip2= SMPindex((ic-1)*PEsmpTOT + PEsmpTOT)
 !$omp do
+!$acc kernels present(W, indexL, itemL, AL)
+!$acc loop independent
         do i= ip1, ip2
           WVAL= W(i,Z)
           do k= indexL(i-1)+1, indexL(i)
@@ -133,6 +133,7 @@
           enddo
           W(i,Z)= WVAL * W(i,DD)
         enddo
+!$acc end kernels
       enddo
 !$omp end parallel
 
@@ -142,6 +143,8 @@
         ip1= SMPindex((ic-1)*PEsmpTOT) + 1
         ip2= SMPindex((ic-1)*PEsmpTOT + PEsmpTOT)
 !$omp do
+!$acc kernels present(indexU, AU, W, itemU)
+!$acc loop independent
         do i= ip1, ip2
           SW  = 0.0d0
           do k= indexU(i-1)+1, indexU(i)
@@ -149,6 +152,7 @@
           enddo
           W(i,Z)= W(i,Z) - W(i,DD) * SW
         enddo
+!$acc end kernels
       enddo
 !$omp end parallel
 !C===
@@ -160,9 +164,12 @@
 !C===
       RHO= 0.d0
 !$omp parallel do private(i) reduction(+:RHO)
+!$acc kernels present(W)
+!$acc loop reduction(+:RHO)
       do i = 1, N
         RHO= RHO + W(i,R)*W(i,Z)   
       enddo
+!$acc end kernels
 !C===
 
 !C
@@ -173,15 +180,21 @@
 !C===
       if ( L.eq.1 ) then
 !$omp parallel do private(i)
+!$acc kernels present(W)
+!$acc loop independent
         do i = 1, N
           W(i,P)= W(i,Z)
         enddo
+!$acc end kernels
        else
         BETA= RHO / RHO1
 !$omp parallel do private(i)
+!$acc kernels present(W)
+!$acc loop independent
         do i = 1, N
           W(i,P)= W(i,Z) + BETA*W(i,P)
         enddo
+!$acc end kernels
       endif
 !C===
 
@@ -191,6 +204,8 @@
 !C +-------------+
 !C===        
 !$omp parallel do private(i,VAL,k)
+!$acc kernels present(D, W, indexL, itemL,  AL, AU)
+!$acc loop independent
       do i= 1, N
         VAL= D(i)*W(i,P)
         do k= indexL(i-1)+1, indexL(i)
@@ -201,6 +216,7 @@
         enddo 
         W(i,Q)= VAL
       enddo
+!$acc end kernels
 !C===
 
 !C
@@ -210,9 +226,12 @@
 !C===
       C1= 0.d0
 !$omp parallel do private(i) reduction(+:C1)
+!$acc kernels present(W)
+!$acc loop reduction(+:C1)
       do i = 1, N
         C1= C1 + W(i,P)*W(i,Q)
       enddo
+!$acc end kernels
 
       ALPHA= RHO / C1
 !C===
@@ -225,16 +244,23 @@
 !C +----------------------+
 !C===
 !$omp parallel do private(i)
+!$acc kernels present(X, W)
+!$acc loop independent
       do i = 1, N
         X(i)  = X(i)   + ALPHA * W(i,P)
         W(i,R)= W(i,R) - ALPHA * W(i,Q)
       enddo
+!$acc end kernels
+
 
       DNRM2= 0.d0
 !$omp parallel do private(i) reduction(+:DNRM2)
+!$acc kernels present(W)
+!$acc loop reduction(+:DNRM2)
       do i = 1, N
         DNRM2= DNRM2 + W(i,R)**2
       enddo
+!$acc end kernels
 !C===
 
       ERR = dsqrt(DNRM2/BNRM2)
@@ -253,6 +279,11 @@
       IER = 1
 
   900 continue
+
+!$acc exit data
+!$acc& delete(B, D, indexL, itemL)
+!$acc& delete(indexU, itemU, AL, AU, W)
+!$acc& copyout(X)
 
       write (*,'(i5,2(1pe16.6))') L, ERR
       ITR= L
